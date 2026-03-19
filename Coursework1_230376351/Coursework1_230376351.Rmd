@@ -1,0 +1,117 @@
+---
+title: "MTH6139 Time Series" 
+subtitle: "Coursework 1_230376351" 
+author: "Seifeddine Zafer" 
+date: "Spring term 2026" 
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: spacelab 
+    highlight: tango
+---
+ 
+```{r, echo=FALSE}
+# This code will display the QMUL logo at the top right of the page
+# Do not change this code
+htmltools::img(src = knitr::image_uri("images/QMlogo.png"),
+               alt = 'logo',
+               style = 'position:absolute; top:0; right:0; padding:10px; width:20%;')
+```
+
+# section 1: introduction
+This project analyses Google trends data for the research term "arsenal" to see how public interest in the football club changes over time.The dataset contains weekly search popularity values allowing us to analyse trends and fluctuations in interest.In this project I want to analyse these results and use Meta's Prophet model to forecast future search interest.
+
+```{r, message=FALSE, warning=FALSE}
+library(readr)
+library(ggplot2)
+library(prophet)
+library(dplyr)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+arsenal_trends <- read_csv("arsenal_trends.csv")
+colnames(arsenal_trends) <- c("ds", "y")
+arsenal_trends$ds <- as.Date(arsenal_trends$ds)
+```
+
+# Section 2: The dataset
+
+## 2.1 Data structure
+
+The dataset I used in this project was from google trends and contains search interest values for the term "arsenal".Google Trends reports popularity on a scale from 0 to 100, where 100 represents the highest level of search interest in the selected period.The dataset is structured with two columns: ds: the date of each observation
+y: the search interest value.The data begins in 2004 and provides a long time series that can be used to explore trends and generate forecasts.
+
+```{r}
+head(arsenal_trends)
+```
+
+
+# section 3: analyse the data
+
+```{r}
+ggplot(arsenal_trends, aes(x = ds, y = y)) +
+  geom_line() +
+  labs(
+    title = "Google Search Interest for Arsenal",
+    x = "Date",
+    y = "Search Interest"
+  )
+```
+
+The plot shows how search interest in Arsenal has changed over time. There are clear fluctuations across the series, with some periods of higher search activity and other times of lower interest. These changes may show how important football events such as title challenges, transfer windows, manager changes, or other times that have caused increased media attentions.
+
+# section 4: trend analysis
+
+```{r}
+trend_model <- lm(y ~ ds, data = arsenal_trends)
+summary(trend_model)
+```
+
+The linear regression results suggest that search interest in Arsenal has increased over time. The coefficient for the date variable is positive, which shows an upward trend in the series. The very small p-value suggests that this trend is statistically significant. 
+
+# section 5: prophet
+```{r, message=FALSE, warning=FALSE}
+arsenal_prophet_model <- prophet(arsenal_trends)
+
+future_dates <- make_future_dataframe(
+  arsenal_prophet_model,
+  periods = 24,
+  freq = "month"
+)
+
+arsenal_forecast <- predict(arsenal_prophet_model, future_dates)
+
+plot(arsenal_prophet_model, arsenal_forecast)
+```
+```{r, message=FALSE, warning=FALSE}
+prophet_plot_components(arsenal_prophet_model, arsenal_forecast)
+```
+
+Prophet is a forecasting model developed by Meta that is used for time series data. It works by separating the data into components such as trend and seasonal patterns, and then uses these to predict future values.The forecast plot shows both the historical data and the predicted values. From the results there is an overall increase in search interest over time, along with fluctuations throughout the year. These fluctuations suggest that search interest changes depending on football related events.However, the model has some limitations. It assumes that past patterns will continue into the future, which may not always be the case. For example, events such as major transfers or important matches could cause changes in search interest that are difficult to predict.
+
+```{r, message=FALSE, warning=FALSE}
+recent_arsenal_trends <- subset(arsenal_trends, ds >= as.Date("2018-01-01"))
+
+recent_prophet_model <- prophet(recent_arsenal_trends)
+
+recent_future <- make_future_dataframe(
+  recent_prophet_model,
+  periods = 24,
+  freq = "month"
+)
+
+recent_forecast <- predict(recent_prophet_model, recent_future)
+
+plot(recent_prophet_model, recent_forecast)
+```
+
+The second forecast uses more recent observations. This makes it more focused on Arsenal’s recent popularity patterns, which may produce different results from the model fitted to the full dataset.
+
+# section 6: conclusion
+This project analysed Google Trends data for the search term “arsenal” to understand how public interest has changed over time. The data was plotted to identify patterns, and a linear regression model was used to examine the overall trend. The Prophet model was then applied to generate forecasts of future search interest.
+The results suggest that search interest have increased over time, although there are some fluctuations throughout the series. While the model provides useful information, the forecasts should be interpreted with carefarely because search behaviour can be influenced by unpredictable football events.
+Overall, this analysis shows how time series methods can be used to study real world data and generate forecasts, while also showing the limitations of relying on historical patterns alone.
+
+# Reference
+google trends data: https://trends.google.com/trends/
